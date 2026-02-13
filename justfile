@@ -1,7 +1,9 @@
 set shell := ["bash", "-c"]
-set dotenv-load := true
-set dotenv-filename := ".env-unit"
-set dotenv-required := true
+
+PWD := justfile_directory()
+export GG_ROOT := PWD
+export GG_MODE := "test"
+export GG_SCHEMA := "internal" / "sql" / "schema.sql"
 
 default:
     @just --list
