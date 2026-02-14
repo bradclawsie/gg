@@ -3,26 +3,26 @@ package runtime
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"log"
 	"log/slog"
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/mattn/go-sqlite3"
+	"modernc.org/sqlite"
 )
 
 func init() {
-	sql.Register("sqlite3_uuid", &sqlite3.SQLiteDriver{
-		ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-			return conn.RegisterFunc("uuid", func() (string, error) {
-				v, err := uuid.NewRandom()
-				if err != nil {
-					panic(err)
-				}
-				return v.String(), nil
-			}, false)
+	sqlite.MustRegisterScalarFunction("uuid", 0,
+		func(ctx *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
+			v, err := uuid.NewRandom()
+			if err != nil {
+				panic(err)
+			}
+			return v.String(), nil
 		},
-	})
+	)
+
 }
 
 const (
@@ -60,7 +60,7 @@ func NewForTest() *State {
 		log.Fatal(err)
 	}
 
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		log.Fatal(err)
 	}
