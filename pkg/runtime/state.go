@@ -4,6 +4,7 @@ package runtime
 import (
 	"database/sql"
 	"database/sql/driver"
+	"gg/pkg/crypt/aesgcm"
 	"log"
 	"log/slog"
 	"os"
@@ -15,11 +16,7 @@ import (
 func init() {
 	sqlite.MustRegisterScalarFunction("uuid", 0,
 		func(ctx *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
-			v, err := uuid.NewRandom()
-			if err != nil {
-				panic(err)
-			}
-			return v.String(), nil
+			return uuid.New().String(), nil
 		},
 	)
 
@@ -29,16 +26,21 @@ const (
 	ApiVersion = "v0"
 )
 
+type KeyGetter func(uuid.UUID) []byte
+
 // State contains references for a given runtime mode.
 type State struct {
-	ApiVersion string
-	DB         *sql.DB
-	Logger     *slog.Logger
-	Mode       string
+	ApiVersion           string
+	DB                   *sql.DB
+	EncryptionKeyVersion uuid.UUID
+	GetKey               KeyGetter
+	Logger               *slog.Logger
+	Mode                 string
 }
 
 // NewForTest creates a State instance for test mode.
 func NewForTest() *State {
+	// Set DB.
 	rootPath, ok := os.LookupEnv("GG_ROOT")
 	if !ok {
 		log.Fatal("GG_ROOT env var not defined")
@@ -70,16 +72,40 @@ func NewForTest() *State {
 		log.Fatal(err)
 	}
 
+	// Set EncryptionKeyVersion.
+	encryptionKeyVersion := uuid.New()
+
+	// Set GetKey.
+
+	// For test mode, add in two random keys in
+	// addition to encryptionKeyVersion.
+	keys := map[uuid.UUID][]byte{
+		encryptionKeyVersion: aesgcm.NewKey(),
+		uuid.New():           aesgcm.NewKey(),
+		uuid.New():           aesgcm.NewKey(),
+	}
+
+	getKey := func(version uuid.UUID) []byte {
+		if key, ok := keys[version]; ok {
+			return key
+		} else {
+			return nil
+		}
+	}
+
+	// Set Logger.
 	logger := slog.New(slog.NewJSONHandler(
 		os.Stderr,
 		&slog.HandlerOptions{AddSource: true, Level: slog.LevelError},
 	))
 
 	return &State{
-		ApiVersion: ApiVersion,
-		DB:         db,
-		Logger:     logger,
-		Mode:       "test",
+		ApiVersion:           ApiVersion,
+		DB:                   db,
+		EncryptionKeyVersion: encryptionKeyVersion,
+		GetKey:               getKey,
+		Logger:               logger,
+		Mode:                 "test",
 	}
 }
 
