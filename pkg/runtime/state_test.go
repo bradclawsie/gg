@@ -10,8 +10,16 @@ import (
 
 func TestState(t *testing.T) {
 	t.Run("OK", func(t *testing.T) {
-		_ = NewForTest()
-		require.True(t, true)
+		st := NewForTest()
+
+		require.NotNil(t, st.GetKey(st.EncryptionKeyVersion))
+		require.Nil(t, st.GetKey(uuid.New()))
+
+		// Make sure the schema loaded.
+		var count int
+		err := st.DB.QueryRow(`SELECT COUNT(*) FROM user`).Scan(&count)
+		require.NoError(t, err)
+		require.Equal(t, 0, count)
 	})
 }
 
