@@ -48,7 +48,7 @@ func NewForTest() *State {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer root.Close()
+	defer root.Close() // nolint:errcheck
 
 	schemaPath, ok := os.LookupEnv("GG_SCHEMA")
 	if !ok {

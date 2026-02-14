@@ -1,0 +1,12 @@
+image: archlinux
+environment:
+  PATH: $HOME/go/bin:/usr/local/sbin:/usr/local/bin:/usr/bin
+tasks:
+  - arch: |
+      sudo pacman -Syu --noconfirm
+      sudo pacman -S --noconfirm go golangci-lint just sqlite staticcheck
+  - test: |
+      pushd gg
+      just pkgs
+      sudo mv $HOME/go/bin/* /usr/bin/.
+      just test lint

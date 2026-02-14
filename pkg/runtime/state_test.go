@@ -18,7 +18,7 @@ func TestState(t *testing.T) {
 func TestUUIDFunction(t *testing.T) {
 	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
-	defer db.Close()
+	defer db.Close() // nolint:errcheck
 
 	_, err = db.Exec(`CREATE TABLE test_uuid (
 		id TEXT NOT NULL DEFAULT (uuid()),
